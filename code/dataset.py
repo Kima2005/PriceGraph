@@ -41,15 +41,25 @@ def z_score(df):
 
 def stock_sample(input_):
     s, d = input_
-    T = 20
+    T = 7
     df = global_df[s]
     if d not in df.index:
         return
     iloc = list(df.index).index(d) + 1
     if iloc < T:  # not enough history data
         return
+    # Debug statement to print iloc and dataframe size
+    print(f"Processing stock: {s}, date: {d}, iloc: {iloc}, df length: {len(df)}")
+
+    if iloc + target - 1 >= len(df):
+        print(f"Index out of bounds for stock: {s}, date: {d}, iloc: {iloc}")
+        return
+    
     xss = {}
     for xi in x_column:
+        if xi not in df.columns:
+            print(f"Column {xi} not found in stock: {s}")
+            return
         # t
         t = 1 if df.iloc[iloc+target-1,:][xi] > df.loc[d, xi] else 0
         # y
@@ -79,12 +89,12 @@ def stock_sample(input_):
         xss['%s_cis' % xi] = ciz
         xss['%s_t' % xi] = t
     return s, d, \
-           xss['close_t'], xss['close_ems'], xss['close_ys'], xss['close_cis'], \
-           xss['open_t'], xss['open_ems'], xss['open_ys'], xss['open_cis'], \
-           xss['high_t'], xss['high_ems'], xss['high_ys'], xss['high_cis'], \
-           xss['low_t'], xss['low_ems'], xss['low_ys'], xss['low_cis'], \
-           xss['vol_t'], xss['vol_ems'], xss['vol_ys'], xss['vol_cis'], \
-           xss['amount_t'], xss['amount_ems'], xss['amount_ys'], xss['amount_cis']
+           xss['Close_t'], xss['Close_ems'], xss['Close_ys'], xss['Close_cis'], \
+           xss['Open_t'], xss['Open_ems'], xss['Open_ys'], xss['Open_cis'], \
+           xss['High_t'], xss['High_ems'], xss['High_ys'], xss['High_cis'], \
+           xss['Low_t'], xss['Low_ems'], xss['Low_ys'], xss['Low_cis'], \
+           xss['Volume_t'], xss['Volume_ems'], xss['Volume_ys'], xss['Volume_cis']
+
 
 
 def sample_by_dates(dates):
@@ -94,23 +104,32 @@ def sample_by_dates(dates):
     samples = pool.map(stock_sample, fds)
     pool.close()
     pool.join()
+        # Add debug statement to check the length of samples
+    print(f"Number of samples generated: {len(samples)}")
+
+    samples = list(filter(lambda s: s is not None, samples))
+    
+    # Add debug statement to check the length of valid samples
+    print(f"Number of valid samples: {len(samples)}")
+
+    if len(samples) == 0:
+        print("No valid samples found.")
+        return {}
 
     samples = filter(lambda s: s is not None, samples)
     stocks, days, \
-    close_t, close_ems, close_ys, close_cis, \
-    open_t, open_ems, open_ys, open_cis, \
-    high_t, high_ems, high_ys, high_cis, \
-    low_t, low_ems, low_ys, low_cis, \
-    vol_t, vol_ems, vol_ys, vol_cis, \
-    amount_t, amount_ems, amount_ys, amount_cis = zip(*samples)
+    Close_t, Close_ems, Close_ys, Close_cis, \
+    Open_t, Open_ems, Open_ys, Open_cis, \
+    High_t, High_ems, High_ys, High_cis, \
+    Low_t, Low_ems, Low_ys, Low_cis, \
+    Volume_t, Volume_ems, Volume_ys, Volume_cis = zip(*samples)
+    # amount_t, amount_ems, amount_ys, amount_cis = zip(*samples)
     return {'stock': np.array(stocks), 'day': np.array(days),
-            'close_t': np.array(close_t), 'close_ems': np.array(close_ems), 'close_ys': np.array(close_ys), 'close_cis': np.array(close_cis),
-            'open_t': np.array(open_t), 'open_ems': np.array(open_ems), 'open_ys': np.array(open_ys), 'open_cis': np.array(open_cis),
-            'high_t': np.array(high_t), 'high_ems': np.array(high_ems), 'high_ys': np.array(high_ys), 'high_cis': np.array(high_cis),
-            'low_t': np.array(low_t), 'low_ems': np.array(low_ems), 'low_ys': np.array(low_ys), 'low_cis': np.array(low_cis),
-            'vol_t': np.array(vol_t), 'vol_ems': np.array(vol_ems), 'vol_ys': np.array(vol_ys), 'vol_cis': np.array(vol_cis),
-            'amount_t': np.array(amount_t), 'amount_ems': np.array(amount_ems), 'amount_ys': np.array(amount_ys), 'amount_cis': np.array(amount_cis),
-            }
+            'Close_t': np.array(Close_t), 'Close_ems': np.array(Close_ems), 'Close_ys': np.array(Close_ys), 'Close_cis': np.array(Close_cis),
+            'Open_t': np.array(Open_t), 'Open_ems': np.array(Open_ems), 'Open_ys': np.array(Open_ys), 'Open_cis': np.array(Open_cis),
+            'High_t': np.array(High_t), 'High_ems': np.array(High_ems), 'High_ys': np.array(High_ys), 'High_cis': np.array(High_cis),
+            'Low_t': np.array(Low_t), 'Low_ems': np.array(Low_ems), 'Low_ys': np.array(Low_ys), 'Low_cis': np.array(Low_cis),
+            'Volume_t': np.array(Volume_t), 'Volume_ems': np.array(Volume_ems), 'Volume_ys': np.array(Volume_ys), 'Volume_cis': np.array(Volume_cis)}
 
 
 def generate_data_year(year):
@@ -126,30 +145,39 @@ def generate_data_year(year):
 
 def generate_data_season(year, season):
     global global_ems
+    sm, em = str((season - 1) * 3 + 1).zfill(2), str(season * 3).zfill(2)
+    print("sm is: ", sm)
+    print("em is: ", em)
+    sm = int(sm)
+    em = int(em)
     start_date = datetime(year, sm, 1)
     days = [(start_date+timedelta(days=i)).strftime('%Y%m%d') for i in range(366)]
-    sm, em = str((season - 1) * 3 + 1).zfill(2), str(season * 3).zfill(2)
-    days = [d for d in days if '%s%s01' % (year, sm) <= d <= '%s%s31' % (year, em)]
+    days = [d for d in days if '%s%s01' % (year, str(sm).zfill(2)) <= d <= '%s%s31' % (year, str(em).zfill(2))]
+    print("Filtered days:")  # Debugging statement
+    print(days)  # Debugging statement
     global_ems = {f: {xc: load_embedding(f, xc, days) for xc in x_column} for f in files}
+    
     dataset = sample_by_dates(days)
     with open(os.path.join('../dataset', '%s_S%s.pickle' % (year, season)), 'wb') as fp:
         pickle.dump(dataset, fp)
+
 
 
 if __name__ == '__main__':
     files = os.listdir('../data')
     if not os.path.exists('../dataset'):
         os.makedirs('../dataset')
-    x_column = ['close', 'open', 'high', 'low', 'vol', 'amount']
+    x_column = ['Open','High','Low','Close','Volume']
     y_column = 'close'
     target = 1
     global_ems = None
     global_df = {f: load_stock(f) for f in files}
     global_ci = {f: {xc: load_ci(f, xc) for xc in x_column} for f in files}
 
-    for y in range(2018, 2009, -1):
-        print(y)
-        generate_data_year(y)
+    # for y in range(2021, 2012, -1):
+    #     print(y)
+    #     generate_data_year(y)
     for m in range(1, 5):
         print(m)
-        generate_data_season(2019, m)
+        generate_data_season(2022, m)
+

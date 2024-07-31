@@ -26,14 +26,14 @@ def struc2vec_embedding(input_):
         os.makedirs(em_dir)
     ems = {}
     for d, adj in vgs.items():
-        labels = np.array([str(i) for i in range(20)])
+        labels = np.array([str(i) for i in range(7)])
         G = nx.Graph()
         for i in range(len(labels)):
             adj_nodes = labels[np.where(adj[i] == 1)]
             edges = list(zip(*[[labels[i]]*len(adj_nodes), adj_nodes]))
             G.add_edges_from(edges)
-        model = Struc2Vec(G, walk_length=10, num_walks=80, workers=40, verbose=40, stay_prob=0.3, opt1_reduce_len=True, opt2_reduce_sim_calc=True, opt3_num_layers=None, temp_path='./temp_struc2vec_%s/' % PI, reuse=False) #init model
-        model.train(embed_size=em_size, window_size=3, workers=40, iter=5)  # train model
+        model = Struc2Vec(G, walk_length=10, num_walks=10, workers=40, verbose=40, stay_prob=0.3, opt1_reduce_len=True, opt2_reduce_sim_calc=True, opt3_num_layers=None, temp_path='./temp_struc2vec_%s/' % PI, reuse=False) #init model
+        model.train(embed_size=em_size, window_size=3, workers=40, iter=1)  # train model
         embeddings = model.get_embeddings()  # get embedding vectors
         ems[d] = {k: v.tolist() for k, v in embeddings.items()}
     with open(os.path.join(em_dir, '%s.json' % file_[:-7]), 'w') as fp:
@@ -41,7 +41,7 @@ def struc2vec_embedding(input_):
 
 
 if __name__ == '__main__':
-    vol_price = ['close', 'vol', 'amount', 'high', 'open', 'low']
+    vol_price = ['Open','High','Low','Close','Volume']
     Dim = 32
     for PI in vol_price:
         vg_dir = os.path.join('../VG', PI)

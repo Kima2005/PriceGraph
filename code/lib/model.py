@@ -183,12 +183,12 @@ class SelfAttention(nn.Module):
 class PriceGraph(nn.Module):
     def __init__(self, input_size, hidden_size, time_step, drop_ratio):
         super(PriceGraph, self).__init__()
-        self.das = nn.ModuleList([DarnnCI(input_size, hidden_size, time_step, drop_ratio) for i in range(6)])
+        self.das = nn.ModuleList([DarnnCI(input_size, hidden_size, time_step, drop_ratio) for i in range(5)])
         self.attn = SelfAttention(hidden_size, hidden_size)
 
     def forward(self, var):
         out = 0
-        for i in range(6):
+        for i in range(5):
             out += self.das[i](var[i]['ems'], var[i]['ys'], var[i]['cis'])
         # batch * hidden_size
         return self.attn(out)

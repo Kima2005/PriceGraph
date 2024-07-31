@@ -20,7 +20,7 @@ def vg_ci(_input):
         vgs = pickle.load(fp)
     cis = {}
     for d, adj in vgs.items():
-        labels = np.array([str(i) for i in range(20)])
+        labels = np.array([str(i) for i in range(7)])
         G = nx.Graph()
         for i in range(T):
             vg_adjs = labels[np.where(adj[i] == 1)]
@@ -33,8 +33,8 @@ def vg_ci(_input):
 
 
 if __name__ == '__main__':
-    vol_price = ['close', 'vol', 'amount', 'high', 'open', 'low']
-    T = 20
+    vol_price = ['Open','High','Low','Close','Volume']
+    T = 7
     for PI in vol_price:
         vg_dir = os.path.join('../VG/', PI)
         ci_dir = os.path.join('../CI', PI)

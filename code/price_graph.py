@@ -38,13 +38,13 @@ def make_visibility_graph(input_):
 
 
 if __name__ == '__main__':
-    vol_price = ['vol', 'amount', 'high', 'open', 'low', 'close']
+    vol_price = ['Open','High','Low','Close','Volume']
     files = os.listdir('../data')
     for PI in vol_price:
         vg_dir = os.path.join('../VG', PI)
         if not os.path.exists(vg_dir):
             os.makedirs(vg_dir)
         pool = Pool()
-        pool.map(make_visibility_graph, [(f, PI, 20) for f in files])
+        pool.map(make_visibility_graph, [(f, PI, 7) for f in files])
         pool.close()
         pool.join()

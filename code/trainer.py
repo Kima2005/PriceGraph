@@ -26,22 +26,23 @@ if torch.cuda.is_available():
     torch.cuda.manual_seed_all(0)
 
 PWD = os.path.dirname(os.path.realpath(__file__))
-x_column = ['close', 'open', 'high', 'low', 'vol', 'amount']
+x_column = ['Open','High','Low','Close','Volume']
 
 
 def data_filter(dataset):
-    sample_len = len(dataset['close_ems'])
+    sample_len = len(dataset['Close_ems'])
     mask = [True] * sample_len
     for i in range(sample_len):
         for xi in x_column:
             s = dataset[xi+'_ems'][i]
-            if s.shape != (20, 32):
+            if s.shape != (7, 32):
+                print("fuck")
                 mask[i] = False
     return {k: np.array(list(v[mask])) for k, v in dataset.items()}
 
-
+()
 def load_season(season):
-    with open(os.path.join('../dataset', '2019_S%s.pickle' % season), 'rb') as fp:
+    with open(os.path.join('../dataset', '2022_S%s.pickle' % season), 'rb') as fp:
         return data_filter(pickle.load(fp))
 
 
@@ -74,8 +75,8 @@ def load_dataset():
     for s in range(1, Season):
         train = merge_season(train, s)
     test = load_season(Season)
-    train['ts'] = np.array(train['close_t'])
-    test['ts'] = np.array(test['close_t'])
+    train['ts'] = np.array(train['Close_t'])
+    test['ts'] = np.array(test['Close_t'])
     return train, test
 
 
@@ -89,7 +90,7 @@ class Trainer:
         self.validation_ratio = split
 
         self.train, self.test = load_dataset()
-        feature_size = self.train['close_ems'][0].shape[1]
+        feature_size = self.train['Close_ems'][0].shape[1]
         self.feature_size  = feature_size
         self.emtree = PriceGraph(feature_size, hidden_size, time_step, drop_ratio)
         self.output = output_layer(last_hidden_size=hidden_size, output_size=1)
@@ -151,14 +152,14 @@ class Trainer:
             print('Validation:\n')
             validation_random = max([sum(val_data['ts'] == r) for r in [0, 1]]) * 1. / len(val_data['ts'])
             accuracy, precision, recall, f1 = self.validation(val_data)
-            acc_max_diff = max(acc_max_diff, accuracy-validation_random)
+            acc_max_diff = max(0, accuracy-validation_random)
             print('Accuracy:%.4f\tPrecision:%.4f\tRecall:%.4f\tF1:%.4f\n' % (accuracy, precision, recall, f1))
             print('Random:%.4f\tMaxAccDiff:%.6f\n' % (validation_random, acc_max_diff))
 
             print('Test:\n')
             test_random = max([sum(self.test['ts'] == r) for r in [0, 1]]) * 1. / len(self.test['ts'])
             accuracy, precision, recall, f1 = self.validation(self.test)
-            acc_max = max(acc_max, accuracy)
+            acc_max = max(0, accuracy)
             print('Accuracy:%.4f\tPrecision:%.4f\tRecall:%.4f\tF1:%.4f\n' % (accuracy, precision, recall, f1))
             print('Random:%.4f\tMaxAcc:%.4f\n' % (test_random, acc_max))
 
@@ -177,6 +178,7 @@ class Trainer:
             y_predict.extend(out3.data.cpu().numpy())
         return self.metrics(list(data['ts']), y_predict)
 
+
     def to_variable(self, x):
         if torch.cuda.is_available():
             return torch.Tensor(x).cuda()
@@ -189,7 +191,7 @@ class Trainer:
         self.emtree.load_state_dict(torch.load(emtree_path, map_location=lambda storage, loc: storage))
         self.output.load_state_dict(torch.load(output_path, map_location=lambda storage, loc: storage))
 
-    def load_model_2019(self, season):
+    def load_model_2022(self, season):
         emtree_path = '../models/PriceGraph_emtree_S%s.model' % season
         output_path = '../models/PriceGraph_output_S%s.model' % season
         self.emtree.load_state_dict(torch.load(emtree_path, map_location=lambda storage, loc: storage))
@@ -229,7 +231,7 @@ def getArgParser():
         help='an integer for the accumulator')
     parser.add_argument(
         '-sn', '--season', type=int, default=1,
-        help='the test season of 2019')
+        help='the test season of 2022')
     parser.add_argument(
         '-dr', '--dropratio', type=int, default=0,
         help='the ratio of drop')
@@ -249,8 +251,8 @@ def getArgParser():
         '-t', '--test', action='store_true',
         help='train or test')
     parser.add_argument(
-        '--test_2019', action='store_true',
-        help='test with models for 2019')
+        '--test_2022', action='store_true',
+        help='test with models for 2022')
     return parser
 
 
@@ -272,8 +274,8 @@ if __name__ == '__main__':
     print(args)
     trainer = Trainer(time_step, hidden_size, lr, batch_size, drop_ratio, split)
     if args.test:
-        if args.test_2019:
-            trainer.load_model_2019(Season)
+        if args.test_2022:
+            trainer.load_model_2022(Season)
         else:
             trainer.load_model(num_epochs)
         trainer.test_data()
